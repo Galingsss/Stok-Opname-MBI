@@ -240,6 +240,40 @@ header.mai .btn-pending{color:var(--mai)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.warn{background:var(--orange)}
 .toast.err{background:var(--red)}
+
+/* ── PIN MODAL ── */
+.pin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:900;padding:20px}
+.pin-overlay.on{display:flex}
+.pin-box{background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:340px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.pin-icon{font-size:32px;margin-bottom:8px}
+.pin-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.pin-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.pin-pt-badge{display:inline-block;border-radius:20px;font-family:var(--mono);font-size:12px;font-weight:700;padding:4px 16px;margin-bottom:16px}
+.pin-pt-badge.mbi{background:var(--red-light);color:var(--red)}
+.pin-pt-badge.mai{background:var(--mai-light);color:var(--mai)}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border);transition:background .15s}
+.pin-dot.filled{background:var(--red)}
+.pin-dot.filled.mai{background:var(--mai)}
+.pin-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 16px}
+.pin-key{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);cursor:pointer;font-family:var(--sans);font-size:20px;font-weight:600;padding:14px 8px;transition:all .1s;-webkit-tap-highlight-color:transparent}
+.pin-key:active{background:var(--red-light);border-color:var(--red);transform:scale(.95)}
+.pin-key.mai:active{background:var(--mai-light);border-color:var(--mai)}
+.pin-key.del{font-size:16px;color:var(--muted)}
+.pin-err{color:var(--red);font-size:13px;font-weight:600;min-height:20px;margin-bottom:8px}
+.pin-cancel{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;text-decoration:underline;font-family:var(--sans)}
+
+/* ── SIGNAL INDICATOR ── */
+.signal-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;font-family:var(--mono);border-bottom:1px solid var(--border);transition:background .3s}
+.signal-bar.good{background:#eafaf1;color:var(--green)}
+.signal-bar.poor{background:#fff8e1;color:var(--orange)}
+.signal-bar.bad{background:var(--red-light);color:var(--red)}
+.signal-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.signal-bar.good .signal-dot{background:var(--green)}
+.signal-bar.poor .signal-dot{background:var(--orange);animation:blink 1s infinite}
+.signal-bar.bad .signal-dot{background:var(--red);animation:blink .5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 </style>
 </head>
 <body>
@@ -251,11 +285,11 @@ header.mai .btn-pending{color:var(--mai)}
     <div class="pt-title">Pilih Perusahaan</div>
     <div class="pt-sub">Pilih PT sesuai area kerja Anda</div>
     <div class="pt-cards">
-      <div class="pt-card mbi" onclick="selectPT('MBI')">
+      <div class="pt-card mbi" onclick="showPIN('MBI')">
         <div><div class="pt-card-name" style="color:var(--red)">MBI</div><div class="pt-card-full">PT Medika Bina Investama</div></div>
         <div class="pt-card-arrow">→</div>
       </div>
-      <div class="pt-card mai" onclick="selectPT('MAI')">
+      <div class="pt-card mai" onclick="showPIN('MAI')">
         <div><div class="pt-card-name" style="color:var(--mai)">MAI</div><div class="pt-card-full">PT Medika Akses Investama</div></div>
         <div class="pt-card-arrow">→</div>
       </div>
@@ -319,6 +353,10 @@ header.mai .btn-pending{color:var(--mai)}
     <div class="stat"><div class="stat-v o" id="sPending">0</div><div class="stat-l">Pending</div></div>
   </div>
 
+  <div class="signal-bar good" id="signalBar">
+    <div class="signal-dot"></div>
+    <span id="signalText">Sinyal baik — siap kirim</span>
+  </div>
   <div class="pg on" id="p1">
     <div class="form-wrap">
       <div class="frow">
@@ -422,6 +460,21 @@ header.mai .btn-pending{color:var(--mai)}
   <!-- TAB: AKUN -->
   <div class="admin-pg" id="apgAkun">
     <div class="admin-section">
+      <h3>Kelola PIN PT</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">PIN 4 digit untuk akses halaman pilihan PT. Default: MBI = 1234, MAI = 5678.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:140px">
+          <div class="admin-form-row"><label>PIN MBI</label><input id="pinMBI" type="number" placeholder="4 digit" maxlength="4" style="font-family:var(--mono);font-size:18px;letter-spacing:8px"></div>
+        </div>
+        <div style="flex:1;min-width:140px">
+          <div class="admin-form-row"><label>PIN MAI</label><input id="pinMAI" type="number" placeholder="4 digit" maxlength="4" style="font-family:var(--mono);font-size:18px;letter-spacing:8px"></div>
+        </div>
+      </div>
+      <button class="btn-admin" onclick="savePINs()">Simpan PIN</button>
+      <div class="admin-status" id="pinStatus"></div>
+    </div>
+
+    <div class="admin-section">
       <h3>Tambah Akun Admin</h3>
       <div class="admin-form-row"><label>Username</label><input id="aUser" placeholder="username"></div>
       <div class="admin-form-row"><label>Password</label><input id="aPass" type="password" placeholder="password"></div>
@@ -439,6 +492,39 @@ header.mai .btn-pending{color:var(--mai)}
       <h3>Daftar Akun Admin</h3>
       <div id="akunTable">Memuat...</div>
     </div>
+  </div>
+</div>
+
+
+<!-- PIN MODAL -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-icon">🔒</div>
+    <div class="pin-title">Masukkan PIN</div>
+    <div class="pin-sub">Akses <span id="pinPTLabel"></span></div>
+    <div class="pin-pt-badge mbi" id="pinPtBadge"></div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+    <div class="pin-numpad" id="pinNumpad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <div></div>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <button class="pin-cancel" onclick="closePIN()">Batal</button>
   </div>
 </div>
 
@@ -500,6 +586,19 @@ function sk(pt) { return "so_v2_" + pt; }
 function ck(pt) { return "cfg_v2_" + pt; }
 function saveData() { try { localStorage.setItem(sk(state.pt), JSON.stringify(state.soData)); } catch(e){} }
 function loadData() { try { var s = localStorage.getItem(sk(state.pt)); state.soData = s ? JSON.parse(s) : []; } catch(e){ state.soData = []; } }
+
+function savePINs() {
+  var mbi = document.getElementById("pinMBI").value.trim();
+  var mai = document.getElementById("pinMAI").value.trim();
+  if (mbi && !/^[0-9]{4}$/.test(mbi)) { showAdminStatus("pinStatus","err","PIN MBI harus 4 digit angka"); return; }
+  if (mai && !/^[0-9]{4}$/.test(mai)) { showAdminStatus("pinStatus","err","PIN MAI harus 4 digit angka"); return; }
+  if (mbi) { localStorage.setItem("pin_MBI", mbi); PIN_CONFIG.MBI = mbi; }
+  if (mai) { localStorage.setItem("pin_MAI", mai); PIN_CONFIG.MAI = mai; }
+  showAdminStatus("pinStatus","ok","✓ PIN berhasil disimpan");
+  document.getElementById("pinMBI").value = "";
+  document.getElementById("pinMAI").value = "";
+}
+
 function saveCfg() { try { localStorage.setItem(ck(state.pt), JSON.stringify(state.cfg)); } catch(e){} }
 function loadCfg() { try { var s = localStorage.getItem(ck(state.pt)); state.cfg = s ? JSON.parse(s) : {}; } catch(e){ state.cfg = {}; } }
 
@@ -568,7 +667,11 @@ function startSO() {
   state.cfg = { tim: t.nama, counter: t.counter, verif: t.verif, input: t.input };
   saveCfg();
   applySOHeader();
-  loadProductsFromGSheet(function() { goScreen("scrSO"); renderStats(); });
+  loadProductsFromGSheet(function() {
+    goScreen("scrSO");
+    renderStats();
+    startSignalMonitor();
+  });
 }
 
 // ── LOAD PRODUCTS ──
@@ -686,9 +789,7 @@ document.getElementById("iQty").addEventListener("input", chkBtn);
 document.getElementById("iQty").addEventListener("keydown", function(e){ if(e.key==="Enter") addItem(); });
 
 function chkBtn() {
-  var lok = document.getElementById("iLok").value.trim();
-  var qty = parseInt(document.getElementById("iQty").value);
-  document.getElementById("btnAdd").disabled = !(lok && state.sel && qty > 0);
+  updateAddBtn();
 }
 
 // ── ADD + LASA POPUP ──
@@ -1047,6 +1148,141 @@ function toast(msg,type){
   clearTimeout(toastT);
   toastT=setTimeout(function(){t.classList.remove("on");},2500);
 }
+
+
+// ── PIN CONFIG ──
+// Default PINs — admin dapat ubah via panel admin (fitur coming soon)
+// atau langsung edit nilai ini
+var PIN_CONFIG = {
+  MBI: localStorage.getItem("pin_MBI") || "1234",
+  MAI: localStorage.getItem("pin_MAI") || "5678"
+};
+
+var pinState = { pt: null, input: "" };
+
+function showPIN(pt) {
+  pinState.pt = pt;
+  pinState.input = "";
+  var badge = document.getElementById("pinPtBadge");
+  badge.textContent = pt;
+  badge.className = "pin-pt-badge " + pt.toLowerCase();
+  document.getElementById("pinPTLabel").textContent = pt + " — " + (pt==="MBI" ? "PT Medika Bina Investama" : "PT Medika Akses Investama");
+  document.querySelectorAll(".pin-key").forEach(function(k){
+    k.className = k.className.replace(" mai","").replace(" mbi","");
+    if (pt==="MAI") k.classList.add("mai");
+  });
+  document.getElementById("pinErr").textContent = "";
+  updatePinDots();
+  document.getElementById("pinOverlay").classList.add("on");
+}
+
+function closePIN() {
+  document.getElementById("pinOverlay").classList.remove("on");
+  pinState.input = "";
+}
+
+function pinKey(digit) {
+  if (pinState.input.length >= 4) return;
+  pinState.input += digit;
+  updatePinDots();
+  if (pinState.input.length === 4) {
+    setTimeout(checkPIN, 150);
+  }
+}
+
+function pinDel() {
+  pinState.input = pinState.input.slice(0,-1);
+  updatePinDots();
+  document.getElementById("pinErr").textContent = "";
+}
+
+function updatePinDots() {
+  for (var i=0; i<4; i++) {
+    var dot = document.getElementById("pd"+i);
+    dot.classList.toggle("filled", i < pinState.input.length);
+    if (pinState.pt === "MAI") dot.classList.add("mai");
+    else dot.classList.remove("mai");
+  }
+}
+
+function checkPIN() {
+  var correct = PIN_CONFIG[pinState.pt];
+  if (pinState.input === correct) {
+    closePIN();
+    selectPT(pinState.pt);
+  } else {
+    document.getElementById("pinErr").textContent = "PIN salah, coba lagi";
+    pinState.input = "";
+    updatePinDots();
+    // Shake animation
+    var box = document.querySelector(".pin-box");
+    box.style.animation = "none";
+    box.offsetHeight; // reflow
+    box.style.animation = "shake .4s ease";
+  }
+}
+
+
+// ── SIGNAL MONITORING ──
+var signalState = "good"; // good | poor | bad
+var signalCheckInterval = null;
+
+function checkSignal() {
+  var start = Date.now();
+  // Ping Apps Script with a lightweight request
+  fetch(WEBHOOK + "?action=ping&callback=x", {method:"GET", cache:"no-cache"})
+    .then(function(r) {
+      var latency = Date.now() - start;
+      if (latency < 1500) {
+        setSignal("good", "Sinyal baik — siap kirim (" + latency + "ms)");
+      } else if (latency < 4000) {
+        setSignal("poor", "Sinyal lemah — " + latency + "ms, sebaiknya tunggu");
+      } else {
+        setSignal("bad", "Sinyal buruk — tahan submit sampai sinyal hijau");
+      }
+    })
+    .catch(function() {
+      setSignal("bad", "Tidak ada koneksi — tahan submit sampai sinyal hijau");
+    });
+}
+
+function setSignal(level, msg) {
+  signalState = level;
+  var bar = document.getElementById("signalBar");
+  var txt = document.getElementById("signalText");
+  if (!bar) return;
+  bar.className = "signal-bar " + level;
+  txt.textContent = msg;
+  // Update add button state
+  updateAddBtn();
+}
+
+function updateAddBtn() {
+  var lok = document.getElementById("iLok") ? document.getElementById("iLok").value.trim() : "";
+  var qty = parseInt(document.getElementById("iQty") ? document.getElementById("iQty").value : "0");
+  var hasData = lok && state.sel && qty > 0;
+  var signalOk = signalState === "good";
+  var btn = document.getElementById("btnAdd");
+  if (!btn) return;
+  btn.disabled = !(hasData && signalOk);
+  if (hasData && !signalOk) {
+    btn.textContent = "⚠ Tunggu sinyal hijau...";
+    btn.style.background = signalState === "poor" ? "var(--orange)" : "var(--muted)";
+  } else if (hasData && signalOk) {
+    btn.textContent = "+ Tambah & Kirim ke GSheet";
+    btn.style.background = "";
+  } else {
+    btn.textContent = "+ Tambah & Kirim ke GSheet";
+    btn.style.background = "";
+  }
+}
+
+function startSignalMonitor() {
+  checkSignal(); // immediate check
+  if (signalCheckInterval) clearInterval(signalCheckInterval);
+  signalCheckInterval = setInterval(checkSignal, 10000); // every 10s
+}
+
 
 // ── INIT ──
 window.addEventListener("DOMContentLoaded", function() {
