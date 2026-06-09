@@ -472,7 +472,7 @@ const GSHEET = { MBI: "1lsDoSedqXnFwuVspD07qKnQQNE1srbmnFzQXD2IyDKw", MAI: "1eWS
 // ── SECURITY ──
 // SEC-009: Admin secret key — must match Apps Script ADMIN_SECRET
 // Jalankan setupAdminKey() di Apps Script editor, lalu update nilai ini
-var ADMIN_SECRET = "1f6b61516e064fe9a9591d7ed010a99a";  // Set setelah jalankan setupAdminKey() di Apps Script
+var ADMIN_SECRET = "dfa18957896d4bada439cea9d7ca3caf";
 
 // SEC-005: Escape HTML to prevent XSS from GSheet data
 function escapeHtml(str) {
@@ -1016,16 +1016,22 @@ function apiCall(params, cb) {
       typeof params[k]==="string" ? params[k] : JSON.stringify(params[k])
     );
   }).join("&");
-  var cbName = "apicb_"+Date.now()+"_"+Math.floor(Math.random()*9999);
-  var done=false, script=document.createElement("script");
-  var timer=setTimeout(function(){
-    if(!done){done=true;cleanup();cb({status:"error",message:"timeout"});}
-  },15000);
-  function cleanup(){clearTimeout(timer);if(window[cbName])delete window[cbName];if(script.parentNode)script.parentNode.removeChild(script);}
-  window[cbName]=function(res){if(!done){done=true;cleanup();cb(res);}};
-  script.onerror=function(){if(!done){done=true;cleanup();cb({status:"error",message:"network"});}};
-  script.src=WEBHOOK+"?"+qs+"&callback="+cbName;
-  document.head.appendChild(script);
+
+  // Read-only actions use fetch (can read response from https://)
+  var readActions = ["getProducts","getTeams","getAdmins","login"];
+  var isRead = readActions.indexOf(params.action) !== -1;
+
+  if (isRead) {
+    fetch(WEBHOOK+"?"+qs, {method:"GET"})
+      .then(function(r){ return r.json(); })
+      .then(function(res){ cb(res); })
+      .catch(function(e){ cb({status:"error",message:"network: "+e.message}); });
+  } else {
+    // Write actions: use no-cors fetch, assume success if no network error
+    fetch(WEBHOOK+"?"+qs, {method:"GET", mode:"no-cors"})
+      .then(function(){ cb({status:"ok"}); })
+      .catch(function(){ cb({status:"error",message:"network"}); });
+  }
 }
 
 // ── TOAST ──
