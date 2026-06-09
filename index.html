@@ -1017,20 +1017,26 @@ function apiCall(params, cb) {
     );
   }).join("&");
 
-  // Read-only actions use fetch (can read response from https://)
   var readActions = ["getProducts","getTeams","getAdmins","login"];
   var isRead = readActions.indexOf(params.action) !== -1;
 
   if (isRead) {
+    // GET + read response (CORS ok from https://)
     fetch(WEBHOOK+"?"+qs, {method:"GET"})
       .then(function(r){ return r.json(); })
       .then(function(res){ cb(res); })
       .catch(function(e){ cb({status:"error",message:"network: "+e.message}); });
   } else {
-    // Write actions: use no-cors fetch, assume success if no network error
-    fetch(WEBHOOK+"?"+qs, {method:"GET", mode:"no-cors"})
-      .then(function(){ cb({status:"ok"}); })
-      .catch(function(){ cb({status:"error",message:"network"}); });
+    // POST for write actions (avoids URL length limit for large data)
+    var body = new URLSearchParams(params).toString();
+    fetch(WEBHOOK, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:body
+    })
+    .then(function(){ cb({status:"ok"}); })
+    .catch(function(){ cb({status:"error",message:"network"}); });
   }
 }
 
